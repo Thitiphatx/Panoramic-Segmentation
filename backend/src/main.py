@@ -1,13 +1,34 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from src.api.router import api_router
+from src.core.config import settings
+from src.services.segmentation import SegmentationService
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.segmentation_service = SegmentationService(settings)
+    yield
+
+
+app = FastAPI(
+    title="Panoramic Segmentation API",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+app.include_router(api_router)
 
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
+def root() -> dict[str, str]:
+    return {"status": "ok", "message": "Panoramic Segmentation API is running"}

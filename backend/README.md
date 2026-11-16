@@ -82,8 +82,21 @@ separate result for each frame. Batch processing is an optimization; the
 frame-by-frame endpoint remains the basis for inspecting and pausing on
 individual results.
 
-## Current status
+## Run the API
 
-This file documents the intended structure. The backend package is still a
-minimal stub; the route and inference modules above have not been implemented
-yet.
+From this directory, run `uv sync` and then `uv run uvicorn src.main:app --reload`.
+The API docs are available at `/docs`. Set `CORS_ORIGINS` to a comma-separated
+list of frontend origins when the frontend is not on `http://localhost:5173`.
+`MAX_UPLOAD_BYTES` controls the upload limit (20 MiB by default).
+
+The route handlers are implemented. Prediction requires a local SegFormer
+checkpoint in `SEGFORMER_MODEL_DIR` and the optional `torch` and `transformers`
+packages. The model loads once on the first prediction request; if weights or
+inference packages are missing, prediction endpoints return HTTP 503 while
+discovery and health endpoints remain available.
+
+`GET /api/sequences` returns `{"sequences": [...]}`. Frame listing returns
+`{"sequence": "...", "frames": [...]}`. Predictions return the source image
+and color mask as PNG data URIs, dimensions, class pixel counts and percentages,
+inference time, and GPS metadata when available. Upload using multipart field
+`file`; optional `latitude`, `longitude`, and `altitude` fields are accepted.
