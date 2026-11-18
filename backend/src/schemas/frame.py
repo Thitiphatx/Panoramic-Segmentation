@@ -20,3 +20,6 @@ class SequenceList(BaseModel):
 class FrameList(BaseModel):
     sequence: str
     frames: list[FrameSummary]
+
+class ResourceList(BaseModel):
+    text: str

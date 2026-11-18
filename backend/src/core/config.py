@@ -2,9 +2,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-
 
 def _env_path(name: str, default: Path) -> Path:
     value = os.getenv(name)

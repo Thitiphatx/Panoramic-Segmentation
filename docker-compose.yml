@@ -1,0 +1,32 @@
+name: 'panoramic-segmentation'
+services:
+  silo:
+    image: docker.io/pgsty/silo:RELEASE.2026-11-12T00-00-00Z
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # S3-compatible API
+      - "9001:9001" # Web console
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - silo_data:/data
+      - "./datasets:/datasets"
+    restart: unless-stopped
+    healthcheck:
+      # ready checks HTTP listener + KMS/etcd; verify signed S3 I/O before dependent workloads
+      test: [ "CMD", "silo", "healthcheck", "ready" ]
+      interval: 30s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: [ "redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-redis-dev-password}" ]
+    restart: unless-stopped
+
+volumes:
+  silo_data:
+  redis_data:
