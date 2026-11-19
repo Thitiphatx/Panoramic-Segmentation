@@ -2,17 +2,12 @@ import io
 import os
 
 from minio import Minio
-
-def required(name: str) -> str:
-    value = os.environ.get(name)
-    if not value:
-        raise RuntimeError(f"{name} is required")
-    return value
+from src.utils.utils import env
 
 client = Minio(
-    required("S3_ENDPOINT"),
-    access_key=required("S3_ACCESS_KEY"),
-    secret_key=required("S3_SECRET_KEY"),
+    env("S3_ENDPOINT"),
+    access_key=env("S3_ACCESS_KEY"),
+    secret_key=env("S3_SECRET_KEY"),
     secure=os.environ.get("S3_USE_SSL", "false").lower() == "true",
 )
 
