@@ -8,3 +8,19 @@ class InferenceUnavailableError(Exception):
 
 class InvalidImageError(Exception):
     """Raised when uploaded bytes are not a supported image."""
+
+
+class InvalidSegmentRequestError(Exception):
+    """Raised when a segmentation request refers to an unsupported model or sequence."""
+
+
+class SequenceStorageUnavailableError(Exception):
+    """Raised when the sequence object store cannot be reached."""
+
+
+class InvalidSequenceDataError(Exception):
+    """Raised when a sequence is missing valid images or matching timestamps."""
+
+
+class JobServiceUnavailableError(Exception):
+    """Raised when a requested job operation is not implemented yet."""

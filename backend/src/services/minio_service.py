@@ -4,12 +4,14 @@ import os
 from minio import Minio
 from src.utils.utils import env
 
-client = Minio(
-    env("S3_ENDPOINT"),
-    access_key=env("S3_ACCESS_KEY"),
-    secret_key=env("S3_SECRET_KEY"),
-    secure=os.environ.get("S3_USE_SSL", "false").lower() == "true",
-)
+def get_client() -> Minio:
+    """Create the MinIO client only when an operation needs it."""
+    return Minio(
+        env("S3_ENDPOINT"),
+        access_key=env("S3_ACCESS_KEY"),
+        secret_key=env("S3_SECRET_KEY"),
+        secure=os.environ.get("S3_USE_SSL", "false").lower() == "true",
+    )
 
 bucket = "panoramic-segmentation"
 result_path="result"
@@ -18,6 +20,7 @@ object_name = "hello.txt"
 payload = b"hello from SILO\n"
 
 def test() -> str:
+    client = get_client()
     if not client.bucket_exists(bucket):
         client.make_bucket(bucket)
 

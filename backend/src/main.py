@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.router import api_router
 from src.core.config import settings
-from src.services.segment import SegmentService
+from src.services.segment_service import SegmentService
 
 
 @asynccontextmanager
