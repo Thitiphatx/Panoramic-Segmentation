@@ -7,7 +7,7 @@ from src.schemas.frame import GPSCoordinates
 from src.utils.images import as_data_uri, decode_image
 
 
-class SegmentationService:
+class SegmentService:
     def __init__(self, settings: Settings):
         self.predictor = SegformerPredictor(settings.model_dir)
 

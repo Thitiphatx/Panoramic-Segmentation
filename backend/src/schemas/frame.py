@@ -13,6 +13,13 @@ class FrameSummary(BaseModel):
     gps_available: bool
 
 
+class FrameDetail(BaseModel):
+    sequence_id: str
+    frame_id: str
+    image_available: bool
+    gps: GPSCoordinates | None = None
+
+
 class SequenceList(BaseModel):
     sequences: list[str]
 

@@ -21,7 +21,7 @@ class SegformerPredictor:
                 from transformers import SegformerForSemanticSegmentation, SegformerImageProcessor
             except ImportError as exc:
                 raise InferenceUnavailableError(
-                    "Install the optional inference dependencies (torch and transformers) to run segmentation"
+                    "Install the optional inference dependencies (torch and transformers) to run segment inference"
                 ) from exc
             try:
                 self._processor = SegformerImageProcessor.from_pretrained(str(self.model_dir), local_files_only=True)
