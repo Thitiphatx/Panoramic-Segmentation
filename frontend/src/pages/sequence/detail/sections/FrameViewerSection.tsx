@@ -56,7 +56,7 @@ const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, fram
           <FrameArtwork
             frameNumber={frame.frameIndex}
             isUnsegmented={!isRawView && !isSegmentedPreviewAvailable}
-            scene={sequence.scene}
+            scene={sequence.scene ?? 'city'}
             viewMode={!isRawView && isSegmentedPreviewAvailable ? 'segmented' : 'raw'}
           />
           <span className="absolute left-4 top-4 rounded-md bg-slate-950/70 px-2.5 py-1.5 text-[10px] font-medium tracking-wide text-white">

@@ -93,7 +93,7 @@ const SequenceDetailPage: React.FC = () => {
               frames={currentPageFrames}
               onPageChange={handlePageChange}
               onSelectFrame={handleSelectFrame}
-              scene={sequence.scene}
+              scene={sequence.scene ?? 'city'}
               selectedFrameIndex={selectedFrame.frameIndex}
               totalFrameCount={sequence.frames}
               totalPageCount={totalPageCount}

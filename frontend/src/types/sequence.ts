@@ -1,15 +1,19 @@
-export type SequenceStatus = 'Ready' | 'Processing'
+export type SequenceStatus = 'Ready' | 'Processing' | 'Segmented'
 
 export type SequenceScene = 'city' | 'overcast' | 'sunset'
 
-export interface ISequence {
+export interface ISequenceItem {
   id: string
+  preview?: string
   date: string
+  status: SequenceStatus
+}
+
+export interface ISequence extends ISequenceItem {
   frames: number
   duration: string
   storage: string
-  status: SequenceStatus
-  camera: string
-  weather: string
-  scene: SequenceScene
+  camera?: string
+  weather?: string
+  scene?: SequenceScene
 }

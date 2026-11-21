@@ -1,16 +1,17 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from src.core.config import settings
 from src.core.errors import DatasetNotFoundError
 from src.schemas.core import ApiResponse
-from src.schemas.frame import FrameList, SequenceList
+from src.schemas.frame import FrameList, Sequence, SequenceItem
+from src.services.storage_service import StorageService
 
 router = APIRouter(prefix="/api/sequence", tags=["sequence"])
+storage_service = StorageService()
 
 
-@router.get("", response_model=ApiResponse[SequenceList])
-def list_sequences() -> ApiResponse[SequenceList]:
-    return ApiResponse(success=True, data=SequenceList(sequences=None))
+@router.get("", response_model=ApiResponse[list[SequenceItem]])
+def list_sequences() -> ApiResponse[list[SequenceItem]]:
+    return ApiResponse(success=True, data=storage_service.get_sequences())
 
 
 @router.get("/{sequence_id}", response_model=ApiResponse[FrameList])

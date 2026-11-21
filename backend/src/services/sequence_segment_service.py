@@ -10,12 +10,13 @@ from src.core.errors import (
     SequenceStorageUnavailableError,
 )
 from src.schemas.segment import SegmentRequest
-from src.services.minio_service import bucket, get_client, raw_path
+from src.services.storage_service import StorageService
 
 
 class SequenceSegmentService:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, storage: StorageService | None = None):
         self.settings = settings
+        self.storage = storage if storage is not None else StorageService()
 
     def list_models(self):
         return list(self.settings.available_models)
@@ -31,10 +32,10 @@ class SequenceSegmentService:
         ):
             raise InvalidSegmentRequestError("Invalid sequence_id")
 
-        prefix = f"{raw_path}/data_images/{request.sequence_id}/"
+        prefix = f"{self.storage.raw_path}/data_images/{request.sequence_id}/"
         try:
-            client = get_client()
-            objects = list(client.list_objects(bucket, prefix=prefix, recursive=True))
+            client = self.storage.get_client()
+            objects = list(client.list_objects(self.storage.bucket, prefix=prefix, recursive=True))
             names = [item.object_name for item in objects if item.object_name]
         except (RuntimeError, S3Error, OSError) as exc:
             raise SequenceStorageUnavailableError("Sequence storage is unavailable") from exc
@@ -54,7 +55,7 @@ class SequenceSegmentService:
         if timestamp_name not in names:
             raise InvalidSequenceDataError("Sequence is missing timestamps.txt")
         try:
-            response = client.get_object(bucket, timestamp_name)
+            response = client.get_object(self.storage.bucket, timestamp_name)
             try:
                 timestamps = [
                     line for line in response.read().decode("utf-8-sig").splitlines() if line.strip()

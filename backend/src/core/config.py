@@ -18,6 +18,10 @@ def _env_path(name: str, default: Path) -> Path:
 
 @dataclass(frozen=True)
 class Settings:
+    dataset_dir: Path = _env_path(
+        "KITTI360_DATASET",
+        REPOSITORY_ROOT / "datasets" / "KITTI-360",
+    )
     model_dir: Path = _env_path(
         "SEGFORMER_MODEL_DIR",
         REPOSITORY_ROOT / "training" / "models" / "segformer-finetuned-cityscapes-1024-1024" / "b0",

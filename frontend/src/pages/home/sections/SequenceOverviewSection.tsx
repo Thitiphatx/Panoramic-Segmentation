@@ -38,7 +38,7 @@ const SequenceOverviewSection: React.FC<ISequenceOverviewSectionProps> = ({
           </div>
 
           <div className="mt-5 grid grid-cols-3 gap-2.5">
-            <SequenceThumbnail isLarge scene={selectedSequence.scene} />
+            <SequenceThumbnail isLarge scene={selectedSequence.scene ?? 'city'} />
             <SequenceThumbnail isLarge scene="overcast" />
             <SequenceThumbnail isLarge scene="sunset" />
           </div>

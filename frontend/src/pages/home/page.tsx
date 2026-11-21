@@ -1,5 +1,5 @@
 import type React from 'react'
-import { useCallback, useMemo, useState, type ChangeEvent, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type MouseEvent } from 'react'
 import {
   Activity,
   Bell,
@@ -15,13 +15,17 @@ import {
 import JobQueueSection from './sections/JobQueueSection'
 import SequenceOverviewSection from './sections/SequenceOverviewSection'
 import SequenceTableSection from './sections/SequenceTableSection'
-import { sequences } from '@/data/sequences'
 import type { SequenceFilter } from './interface'
+import type { ISequence, ISequenceItem } from '@/types/sequence'
+import { apiClient } from '@/lib/api-client'
+import type { ApiResponse } from '@/types/response'
 
 const HomePage: React.FC = () => {
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState<SequenceFilter>('All sequences')
-  const [selectedSequenceId, setSelectedSequenceId] = useState(sequences[0].id)
+  const [sequences, setSequences] = useState<ISequenceItem[]>([])
+  const [selectedSequence, setSelectedSequence] = useState<ISequence | null>(null)
 
   const filteredSequences = useMemo(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase()
@@ -35,22 +39,53 @@ const HomePage: React.FC = () => {
 
       return isSearchMatch && isFilterMatch
     })
-  }, [activeFilter, searchTerm])
-
-  const selectedSequence = useMemo(
-    () => sequences.find((sequence) => sequence.id === selectedSequenceId) ?? sequences[0],
-    [selectedSequenceId],
-  )
+  }, [activeFilter, searchTerm, sequences])
 
   const totalFrames = useMemo(
-    () => sequences.reduce((total, sequence) => total + sequence.frames, 0),
-    [],
+    () => selectedSequence?.frames ?? 0,
+    [selectedSequence],
   )
 
   const readySequenceCount = useMemo(
     () => sequences.filter((sequence) => sequence.status === 'Ready').length,
-    [],
+    [sequences],
   )
+
+  const getSequenceDetail = useCallback((id: string) => {
+    setIsLoading(true)
+    apiClient
+      .get<ApiResponse<ISequence>>(`/sequence/${id}`)
+      .then(({ data }) => {
+        if (data.success) {
+          setSelectedSequence(data.data)
+        }
+      })
+      .catch(() => {
+        // TODO: handle sequence detail fetch error
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [])
+
+  const fetchSequences = useCallback(() => {
+    apiClient
+      .get<ApiResponse<ISequenceItem[]>>('/sequence')
+      .then(({ data }) => {
+        if (data.success) {
+          setSequences(data.data)
+          if (data.data.length > 0) {
+            getSequenceDetail(data.data[0].id)
+          }
+        }
+      })
+      .catch(() => {
+        // TODO: handle sequences fetch error
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [getSequenceDetail])
 
   const handleSearchChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value)
@@ -60,18 +95,25 @@ const HomePage: React.FC = () => {
     setActiveFilter(event.currentTarget.value as SequenceFilter)
   }, [])
 
-  const handleSelectSequence = useCallback((event: MouseEvent<HTMLButtonElement>) => {
-    const sequenceId = event.currentTarget.dataset.sequenceId
+  const handleSelectSequence = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      const sequenceId = event.currentTarget.dataset.sequenceId
 
-    if (sequenceId) {
-      setSelectedSequenceId(sequenceId)
-    }
-  }, [])
+      if (sequenceId) {
+        getSequenceDetail(sequenceId)
+      }
+    },
+    [getSequenceDetail],
+  )
+
+  useEffect(() => {
+    fetchSequences()
+  }, [fetchSequences])
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-900">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[248px] flex-col bg-[#111b2d] text-slate-300 lg:flex">
-        <div className="flex h-[76px] items-center gap-3 border-b border-white/10 px-6">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-62 flex-col bg-[#111b2d] text-slate-300 lg:flex">
+        <div className="flex h-19 items-center gap-3 border-b border-white/10 px-6">
           <div className="flex size-9 items-center justify-center rounded-xl bg-cyan-400 text-[#102035]">
             <Activity className="size-5" strokeWidth={2.5} />
           </div>
@@ -101,7 +143,7 @@ const HomePage: React.FC = () => {
         </div>
 
         <div className="mt-auto border-t border-white/10 p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] p-3">
+          <div className="flex items-center gap-3 rounded-xl bg-white/4 p-3">
             <div className="flex size-9 items-center justify-center rounded-lg bg-slate-700 text-cyan-200">
               <Database className="size-4" />
             </div>
@@ -118,8 +160,8 @@ const HomePage: React.FC = () => {
         </div>
       </aside>
 
-      <div className="lg:pl-[248px]">
-        <header className="flex h-[76px] items-center justify-between border-b border-slate-200/80 bg-white px-5 sm:px-8">
+      <div className="lg:pl-62">
+        <header className="flex h-19 items-center justify-between border-b border-slate-200/80 bg-white px-5 sm:px-8">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-slate-400">Workspace</span>
             <span className="text-slate-300">/</span>
@@ -130,14 +172,14 @@ const HomePage: React.FC = () => {
               <Sparkles className="size-3.5" /> Sample data
             </span>
             <button aria-label="Notifications" className="relative cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button">
-              <Bell className="size-[18px]" />
+              <Bell className="size-4.5" />
               <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-cyan-500" />
             </button>
             <div className="flex size-8 items-center justify-center rounded-full bg-[#dcebf0] text-xs font-semibold text-[#315768]">TP</div>
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1440px] px-5 py-7 sm:px-8 sm:py-9 xl:px-10">
+        <main aria-busy={isLoading} className="mx-auto max-w-360 px-5 py-7 sm:px-8 sm:py-9 xl:px-10">
           <div className="mb-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
               <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] text-cyan-700">
@@ -154,20 +196,20 @@ const HomePage: React.FC = () => {
             <JobQueueSection />
             <SequenceTableSection
               activeFilter={activeFilter}
-              availableSequenceCount={readySequenceCount}
               onFilterChange={handleFilterChange}
               onSearchChange={handleSearchChange}
               onSelectSequence={handleSelectSequence}
               searchTerm={searchTerm}
-              selectedSequenceId={selectedSequenceId}
+              selectedSequenceId={selectedSequence?.id ?? ''}
               sequences={filteredSequences}
-              totalSequenceCount={sequences.length}
             />
-            <SequenceOverviewSection
-              readySequenceCount={readySequenceCount}
-              selectedSequence={selectedSequence}
-              totalFrames={totalFrames}
-            />
+            {selectedSequence && (
+              <SequenceOverviewSection
+                readySequenceCount={readySequenceCount}
+                selectedSequence={selectedSequence}
+                totalFrames={totalFrames}
+              />
+            )}
           </div>
 
           <footer className="flex flex-col justify-between gap-2 py-6 text-[10px] text-slate-400 sm:flex-row">

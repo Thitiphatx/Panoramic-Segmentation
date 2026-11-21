@@ -1,17 +1,15 @@
 import type React from 'react'
-import { ArrowDownUp, ChevronDown, Filter, MapPin, Search } from 'lucide-react'
+import { ArrowDownUp, ChevronDown, Filter, Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
-import SequenceThumbnail from './SequenceThumbnail'
 import type { ISequenceTableSectionProps, SequenceFilter } from '../interface'
 import SequenceStatusBadge from './SequenceStatusBadge'
+import { useMemo } from 'react'
 
 const filters: SequenceFilter[] = ['All sequences', 'Available', 'Processing']
 
 const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
   sequences,
-  totalSequenceCount,
-  availableSequenceCount,
   selectedSequenceId,
   searchTerm,
   activeFilter,
@@ -19,6 +17,21 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
   onFilterChange,
   onSelectSequence
 }) => {
+  const filteredSequences = useMemo(() => {
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+
+    return sequences.filter((sequence) => {
+      const isSearchMatch = sequence.id.toLowerCase().includes(normalizedSearchTerm)
+      const isFilterMatch = activeFilter === 'All sequences' ||
+        (activeFilter === 'Available' && sequence.status === 'Ready') ||
+        (activeFilter === 'Processing' && sequence.status === 'Processing')
+      return isSearchMatch && isFilterMatch
+    })
+  }, [activeFilter, searchTerm, sequences])
+
+  const totalSequenceCount = sequences.length
+  const availableSequenceCount = sequences.filter((sequence) => sequence.status === 'Ready').length
+
   return (
     <section aria-labelledby="sequence-table-heading" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.025)]">
       <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
@@ -70,19 +83,16 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[780px] border-collapse text-left">
+        <table className="w-full min-w-[560px] border-collapse text-left">
           <thead>
             <tr className="bg-slate-50/70 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
               <th className="px-6 py-3.5">Sequence name</th>
-              <th className="px-4 py-3.5">Frames</th>
-              <th className="px-4 py-3.5">Duration</th>
-              <th className="px-4 py-3.5">Storage</th>
               <th className="px-4 py-3.5">Status</th>
               <th className="px-5 py-3.5"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {sequences.map((sequence) => {
+            {filteredSequences.map((sequence) => {
               const isSelected = sequence.id === selectedSequenceId
 
               return (
@@ -92,16 +102,13 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
                       className="group flex cursor-pointer items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-cyan-600"
                       to={`/sequences/${encodeURIComponent(sequence.id)}`}
                     >
-                      <SequenceThumbnail scene={sequence.scene} />
+                      <img alt="" className="h-11 w-16 rounded-xl object-cover" src={sequence.preview} />
                       <div className="min-w-0">
                         <p className="truncate text-xs font-semibold text-slate-700 group-hover:text-cyan-700">{sequence.id}</p>
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-400"><MapPin className="size-3" /> Stuttgart, Germany <span className="mx-0.5">·</span> {sequence.date}</p>
+                        <p className="mt-1 text-[11px] text-slate-400">{sequence.date}</p>
                       </div>
                     </Link>
                   </td>
-                  <td className="px-4 py-3.5 text-xs font-medium tabular-nums text-slate-600">{sequence.frames.toLocaleString()}</td>
-                  <td className="px-4 py-3.5 text-xs tabular-nums text-slate-500">{sequence.duration}</td>
-                  <td className="px-4 py-3.5 text-xs text-slate-500">{sequence.storage}</td>
                   <td className="px-4 py-3.5"><SequenceStatusBadge status={sequence.status} /></td>
                   <td className="px-5 py-3.5">
                     <div className="flex justify-end">
@@ -119,9 +126,9 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
                 </tr>
               )
             })}
-            {sequences.length === 0 && (
+            {filteredSequences.length === 0 && (
               <tr>
-                <td className="px-6 py-14 text-center text-sm text-slate-400" colSpan={6}>
+                <td className="px-6 py-14 text-center text-sm text-slate-400" colSpan={3}>
                   No sequences match “{searchTerm}”. Try a different name or filter.
                 </td>
               </tr>
@@ -131,7 +138,7 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
       </div>
 
       <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <p className="text-[11px] text-slate-400">Showing <span className="font-medium text-slate-600">{sequences.length}</span> of {totalSequenceCount} sequences</p>
+        <p className="text-[11px] text-slate-400">Showing <span className="font-medium text-slate-600">{filteredSequences.length}</span> of {totalSequenceCount} sequences</p>
         <div className="flex items-center gap-2 text-[11px] text-slate-400"><span className="size-1.5 rounded-full bg-emerald-400" /> Dataset synced just now</div>
       </div>
     </section>

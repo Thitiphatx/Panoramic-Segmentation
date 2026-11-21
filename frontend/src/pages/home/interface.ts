@@ -1,5 +1,5 @@
 import type { ChangeEventHandler, MouseEventHandler } from 'react'
-import type { ISequence, SequenceScene, SequenceStatus } from '@/types/sequence'
+import type { ISequence, ISequenceItem, SequenceScene, SequenceStatus } from '@/types/sequence'
 
 export type SequenceFilter = 'All sequences' | 'Available' | 'Processing'
 
@@ -20,9 +20,7 @@ export interface ISequenceThumbnailProps {
 }
 
 export interface ISequenceTableSectionProps {
-  sequences: ISequence[]
-  totalSequenceCount: number
-  availableSequenceCount: number
+  sequences: ISequenceItem[]
   selectedSequenceId: string
   searchTerm: string
   activeFilter: SequenceFilter

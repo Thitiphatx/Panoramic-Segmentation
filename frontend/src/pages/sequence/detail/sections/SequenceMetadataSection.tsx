@@ -26,8 +26,8 @@ const SequenceMetadataSection: React.FC<ISequenceMetadataSectionProps> = ({ sequ
         <MetadataItem label="Frame count" value={sequence.frames.toLocaleString()} />
         <MetadataItem label="Duration" value={sequence.duration} />
         <MetadataItem label="Storage" value={sequence.storage} />
-        <MetadataItem label="Camera" value={sequence.camera} />
-        <MetadataItem label="Conditions" value={sequence.weather} />
+        <MetadataItem label="Camera" value={sequence.camera ?? 'Image 00 · Stereo pair'} />
+        <MetadataItem label="Conditions" value={sequence.weather ?? 'Clear · Daylight'} />
         <MetadataItem label="Source" value="Local KITTI-360" />
       </div>
     </section>
