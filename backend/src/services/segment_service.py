@@ -27,3 +27,5 @@ class SegmentService:
 
     def segment_file(self, path: Path, frame_id: str, gps: GPSCoordinates | None = None):
         return self.segment(path.read_bytes(), frame_id=frame_id, gps=gps)
+
+

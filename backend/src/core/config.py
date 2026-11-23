@@ -1,15 +1,22 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import quote_plus
+
+from dotenv import load_dotenv
 
 from src.schemas.segment import SegmentModel
 
+load_dotenv()
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(REPOSITORY_ROOT / ".env", override=False)
 
 SEGMENT_MODELS = tuple(
     SegmentModel(model_id=f"segformer-b{variant}-cityscapes", name=f"SegFormer B{variant} (Cityscapes)")
     for variant in range(6)
 )
+
 
 def _env_path(name: str, default: Path) -> Path:
     value = os.getenv(name)
@@ -33,6 +40,7 @@ class Settings:
         if origin.strip()
     )
     available_models: tuple[SegmentModel, ...] = field(default_factory=lambda: SEGMENT_MODELS)
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://postgresadmin:!09QdQqq7MEM%21zJ%400tr7f8Yl@localhost:5432/segment")
 
 
 settings = Settings()

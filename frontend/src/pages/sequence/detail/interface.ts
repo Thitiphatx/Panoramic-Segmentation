@@ -12,6 +12,7 @@ export interface IFrameRecord {
   timestamp: string
   latitude: number
   longitude: number
+  rawImageUrl?: string
 }
 
 export interface ISequenceMetadataSectionProps {
@@ -28,13 +29,16 @@ export interface IFrameArtworkProps {
   frameNumber: number
   viewMode: FrameViewMode
   isUnsegmented?: boolean
+  imageUrl?: string
 }
 
 export interface IFrameViewerSectionProps {
   sequence: ISequence
   frame: IFrameRecord
   viewMode: FrameViewMode
+  isPlaying: boolean
   onViewModeChange: MouseEventHandler<HTMLButtonElement>
+  onTogglePlayback: () => void
 }
 
 export interface IFrameGridSectionProps {

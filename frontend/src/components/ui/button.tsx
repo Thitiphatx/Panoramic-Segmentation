@@ -1,16 +1,19 @@
 import * as React from "react"
-import type { IButtonProps } from './interface'
-import { buttonVariants } from './button-variants'
-import { cn } from '@/lib/utils'
-import { Slot } from 'radix-ui'
+import type { VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+import { Slot } from "radix-ui"
+import { buttonVariants } from "./button-variants"
 
-const Button: React.FC<IButtonProps> = ({
+function Button({
   className,
   variant = "default",
   size = "default",
   asChild = false,
   ...props
-}) => {
+}: React.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean
+  }) {
   const Comp = asChild ? Slot.Root : "button"
 
   return (

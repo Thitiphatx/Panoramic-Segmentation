@@ -27,6 +27,19 @@ services:
     command: [ "redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-redis-dev-password}" ]
     restart: unless-stopped
 
+  postgres:
+    image: postgres:15.0
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
 volumes:
   silo_data:
   redis_data:
+  postgres_data:

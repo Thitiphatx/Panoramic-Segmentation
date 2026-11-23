@@ -13,3 +13,5 @@ class JobService:
     @staticmethod
     def submit_frame(sequence_id: str, frame_id: str) -> None:
         raise JobServiceUnavailableError("Job submission is not available until the worker service is implemented")
+
+

@@ -11,22 +11,23 @@ class FrameSummary(BaseModel):
     image_available: bool
     gps_available: bool
 
-class FrameDetail(BaseModel):
-    sequence_id: str
-    frame_id: str
-    image_available: bool
-    gps: GPSCoordinates | None = None
+class FrameMetadata(BaseModel):
+    date: str
+    gps: GPSCoordinates
 
-class SequenceItem(BaseModel):
+class FrameDetail(BaseModel):
+    id: str
+    metadata: FrameMetadata
+    status: Literal["Ready", "Processing", "Segmented"]
+class Sequence(BaseModel):
     id: str
     preview: str
     date: str
     status: Literal["Ready", "Processing", "Segmented"]
-
-class Sequence(SequenceItem):
     frames: int
-    duration: str
+    duration: int
     storage: str
+
 
 class FrameList(BaseModel):
     sequence: str

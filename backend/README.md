@@ -61,6 +61,10 @@ the image; GPS is returned as associated metadata and is not fed into SegFormer.
 - `GET /api/sequence`: available sequence names.
 - `GET /api/sequence/{sequence_id}`: ordered frames for a sequence.
 - `GET /api/sequence/{sequence_id}/frame/{frame_id}`: frame metadata and GPS.
+- `POST /api/sync-storage`: start a storage sync and return its `sync_id` immediately.
+- `GET /api/sync-storage/{sync_id}`: read sync progress; `GET /api/sync-storage`
+  returns the currently active sync, if any.
+- `POST /api/sync-storage/{sync_id}/cancel`: cancel a queued or running sync.
 - `POST /api/sequence/{sequence_id}/frame/{frame_id}/segment`: submit a frame job.
 - `GET /api/job`: list jobs; `DELETE /api/job/{job_id}`: cancel a job.
 - `GET /api/segment/models`: available models (`SegmentModelList`).
@@ -81,6 +85,17 @@ From this directory, run `uv sync` and then `uv run uvicorn src.main:app --reloa
 The API docs are available at `/docs`. Set `CORS_ORIGINS` to a comma-separated
 list of frontend origins when the frontend is not on `http://localhost:5173`.
 `MAX_UPLOAD_BYTES` controls the upload limit (20 MiB by default).
+
+Storage sync uses its own Redis queue (`storage_sync:queue`) and worker thread,
+started automatically with the API. It remains separate from the segment job
+queue, so no additional worker command is needed.
+Set `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` to match the Redis server;
+set `REDIS_USERNAME` as well when the server uses ACL authentication. The
+Compose Redis service uses the default ACL user and the `REDIS_PASSWORD` value
+from the Compose environment (or `redis-dev-password` when unset).
+Frame GPS metadata includes latitude, longitude, altitude, and OXTS motion and
+receiver fields. The address field is left empty; storage sync does not perform
+reverse geocoding.
 
 The frame and model discovery routes are implemented. Job storage, submission,
 and cancellation will be connected when the worker service is added.

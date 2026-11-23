@@ -1,12 +1,12 @@
 import type React from 'react'
 import { useMemo } from 'react'
-import { Clock3, MapPin, Video } from 'lucide-react'
+import { Clock3, MapPin, Pause, Play, Video } from 'lucide-react'
 import FrameArtwork from './FrameArtwork'
 import type { IFrameViewerSectionProps } from '../interface'
 import FrameSegmentationBadge from './FrameSegmentationBadge'
 import MetadataItem from './MetadataItem'
 
-const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, frame, viewMode, onViewModeChange }) => {
+const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, frame, viewMode, isPlaying, onViewModeChange, onTogglePlayback }) => {
   const isRawView = viewMode === 'raw'
   const isSegmentedPreviewAvailable = frame.status === 'segmented'
 
@@ -30,6 +30,16 @@ const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, fram
             <h2 className="text-sm font-semibold text-slate-800">Full frame view</h2>
             <p className="mt-1 text-[11px] text-slate-400">Frame {frame.frameId} <span className="mx-1">·</span> {sequence.id}</p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+          <button
+            aria-label={isPlaying ? 'Pause playback' : 'Play sequence'}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+            onClick={onTogglePlayback}
+            type="button"
+          >
+            {isPlaying ? <Pause aria-hidden="true" className="size-3.5" /> : <Play aria-hidden="true" className="size-3.5" />}
+            {isPlaying ? 'Pause' : 'Play'}
+          </button>
           <div aria-label="Frame display mode" className="flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1">
             <button
               aria-pressed={isRawView}
@@ -50,11 +60,13 @@ const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, fram
               Segmented
             </button>
           </div>
+          </div>
         </div>
 
         <div className="relative aspect-[16/7] min-h-[230px] overflow-hidden bg-slate-800 sm:min-h-[300px]">
           <FrameArtwork
             frameNumber={frame.frameIndex}
+            imageUrl={isRawView ? frame.rawImageUrl : undefined}
             isUnsegmented={!isRawView && !isSegmentedPreviewAvailable}
             scene={sequence.scene ?? 'city'}
             viewMode={!isRawView && isSegmentedPreviewAvailable ? 'segmented' : 'raw'}

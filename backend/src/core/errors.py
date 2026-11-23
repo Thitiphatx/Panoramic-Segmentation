@@ -24,3 +24,7 @@ class InvalidSequenceDataError(Exception):
 
 class JobServiceUnavailableError(Exception):
     """Raised when a requested job operation is not implemented yet."""
+
+
+class StorageSyncCancelledError(Exception):
+    """Raised when a storage sync has been asked to stop."""
