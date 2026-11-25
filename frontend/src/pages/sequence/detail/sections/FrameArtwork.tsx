@@ -7,7 +7,7 @@ const rawSkyColors = {
   sunset: '#d5ad86',
 }
 
-const FrameArtwork: React.FC<IFrameArtworkProps> = ({ scene, frameNumber, viewMode, isUnsegmented = false, imageUrl }) => {
+const FrameArtwork: React.FC<IFrameArtworkProps> = ({ scene, frameNumber, viewMode, isUnsegmented = false, imageUrl, segmentedImageUrl }) => {
   const isSegmentedView = viewMode === 'segmented'
   const skyColor = isSegmentedView ? '#55a9d1' : rawSkyColors[scene]
   const buildingColor = isSegmentedView ? '#8a9298' : '#69747b'
@@ -16,12 +16,17 @@ const FrameArtwork: React.FC<IFrameArtworkProps> = ({ scene, frameNumber, viewMo
   const vehicleColor = isSegmentedView ? '#e0a04b' : '#c7c8c3'
   const horizonOffset = frameNumber % 7
 
-  if (imageUrl && !isSegmentedView) {
+  const displayedImageUrl = isSegmentedView ? segmentedImageUrl : imageUrl
+
+  if (displayedImageUrl) {
     return (
       <img
-        alt={`Raw camera frame ${String(frameNumber).padStart(10, '0')}`}
+        alt={`${isSegmentedView ? 'Segmented' : 'Raw camera'} frame ${String(frameNumber).padStart(10, '0')}`}
         className={`absolute inset-0 size-full object-cover ${isUnsegmented ? 'grayscale' : ''}`}
-        src={imageUrl}
+        decoding="async"
+        fetchPriority="high"
+        loading="eager"
+        src={displayedImageUrl}
       />
     )
   }

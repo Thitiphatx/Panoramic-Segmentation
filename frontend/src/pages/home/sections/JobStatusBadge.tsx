@@ -1,5 +1,5 @@
 import type React from 'react'
-import { Check, Clock3, LoaderCircle, X } from 'lucide-react'
+import { Check, Clock3, LoaderCircle, TriangleAlert, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { IJobStatusBadgeProps } from '../interface'
 
@@ -7,7 +7,8 @@ const JobStatusBadge: React.FC<IJobStatusBadgeProps> = ({ status }) => {
   const isRunning = status === 'Running'
   const isQueued = status === 'Queued'
   const isCompleted = status === 'Completed'
-  const StatusIcon = isRunning ? LoaderCircle : isQueued ? Clock3 : isCompleted ? Check : X
+  const isFailed = status === 'Failed'
+  const StatusIcon = isRunning ? LoaderCircle : isQueued ? Clock3 : isCompleted ? Check : isFailed ? TriangleAlert : X
 
   return (
     <Badge
@@ -18,6 +19,8 @@ const JobStatusBadge: React.FC<IJobStatusBadgeProps> = ({ status }) => {
             ? 'bg-amber-50 text-amber-700'
             : isCompleted
               ? 'bg-emerald-50 text-emerald-700'
+            : isFailed
+              ? 'bg-rose-50 text-rose-700'
               : 'bg-slate-100 text-slate-500'
       }`}
       variant="outline"

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.schemas.core import ApiResponse
-from src.core.errors import JobServiceUnavailableError
 from src.schemas.job import JobList
 from src.dependencies import get_job_service
 from src.services.jobs_service import JobService
@@ -14,12 +13,9 @@ def list_jobs(service: JobService = Depends(get_job_service)) -> ApiResponse[Job
     return ApiResponse(success=True, data=JobList(jobs=service.list_jobs()))
 
 
-@router.delete("/{job_id}", status_code=501)
+@router.delete("/{job_id}", status_code=204)
 def cancel_job(
     job_id: str,
     service: JobService = Depends(get_job_service),
 ) -> None:
-    try:
-        service.cancel_job(job_id)
-    except JobServiceUnavailableError as exc:
-        raise HTTPException(status_code=501, detail=str(exc)) from exc
+    service.cancel_job(job_id)

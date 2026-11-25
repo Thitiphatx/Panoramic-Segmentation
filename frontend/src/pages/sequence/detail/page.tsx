@@ -10,6 +10,7 @@ import type { FrameViewMode, IFrameRecord } from './interface'
 import { apiClient } from '@/lib/api-client'
 import type { ApiResponse } from '@/types/response'
 import type { ISequenceFrameRecord } from '@/types/frame'
+import type { ISequenceRecord, SequenceStatus } from '@/types/sequence'
 
 const FRAME_PAGE_SIZE = 48
 const PLAYBACK_INTERVAL_MS = 100
@@ -23,11 +24,12 @@ const SequenceDetailPage: React.FC = () => {
   const [frames, setFrames] = useState<IFrameRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [sequenceStatus, setSequenceStatus] = useState<SequenceStatus>('Ready')
 
   const sequence = useMemo(() => {
     const knownSequence = sequences.find((sequenceItem) => sequenceItem.id === sequenceId)
     if (knownSequence) {
-      return { ...knownSequence, frames: frames.length }
+      return { ...knownSequence, frames: frames.length, status: sequenceStatus }
     }
     if (frames.length === 0) {
       return undefined
@@ -38,15 +40,14 @@ const SequenceDetailPage: React.FC = () => {
       frames: frames.length,
       duration: '—',
       storage: '—',
-      status: 'Ready' as const,
+      status: sequenceStatus,
       camera: 'Image 00 · Stereo pair',
       weather: '—',
       scene: 'city' as const,
     }
-  }, [frames.length, sequenceId])
+  }, [frames.length, sequenceId, sequenceStatus])
 
   const fetchFrames = useCallback(() => {
-    setIsLoading(true)
     setFetchError(null)
     apiClient
       .get<ApiResponse<ISequenceFrameRecord[]>>(`/sequence/${encodeURIComponent(sequenceId)}`)
@@ -57,13 +58,13 @@ const SequenceDetailPage: React.FC = () => {
             .map((frame, frameIndex) => ({
             frameIndex,
             frameId: frame.id,
-            status: 'unsegmented' as const,
-            timestamp: frame.metadata_.date && !Number.isNaN(Date.parse(frame.metadata_.date))
-              ? new Date(frame.metadata_.date).toISOString().slice(11, 23)
-              : '—',
-            latitude: frame.metadata_.gps?.lat ?? 0,
-            longitude: frame.metadata_.gps?.lon ?? 0,
+            status: frame.metadata_.status?.toLowerCase() === 'processing' ? 'processing' as const : frame.metadata_.path?.segmented ? 'segmented' as const : 'unsegmented' as const,
+            apiStatus: frame.metadata_.status,
+            date: frame.metadata_.date,
+            timestamp: frame.metadata_.date ?? '—',
+            gps: frame.metadata_.gps,
             rawImageUrl: frame.metadata_.path?.raw,
+            segmentedImageUrl: frame.metadata_.path?.segmented || undefined,
             }))
           setFrames(sequenceFrames)
           setSelectedFrameIndex(0)
@@ -76,8 +77,42 @@ const SequenceDetailPage: React.FC = () => {
       .finally(() => setIsLoading(false))
   }, [sequenceId])
 
+  const fetchSequenceStatus = useCallback(async () => {
+    try {
+      const { data } = await apiClient.get<ApiResponse<ISequenceRecord[]>>('/sequence')
+      if (data.success) {
+        const currentSequence = data.data.find((item) => item.id === sequenceId)
+        if (currentSequence?.metadata_.status) {
+          setSequenceStatus(currentSequence.metadata_.status)
+        }
+      }
+    } catch {
+      return
+    }
+  }, [sequenceId])
+
   useEffect(() => {
     void Promise.resolve().then(fetchFrames)
+  }, [fetchFrames])
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchSequenceStatus)
+  }, [fetchSequenceStatus])
+
+  useEffect(() => {
+    if (sequenceStatus !== 'Processing') {
+      return
+    }
+    const intervalId = window.setInterval(() => {
+      fetchFrames()
+      void fetchSequenceStatus()
+    }, 5000)
+    return () => window.clearInterval(intervalId)
+  }, [fetchFrames, fetchSequenceStatus, sequenceStatus])
+
+  const handleRetryFetchFrames = useCallback(() => {
+    setIsLoading(true)
+    fetchFrames()
   }, [fetchFrames])
 
   const selectedFrame = useMemo(
@@ -146,7 +181,7 @@ const SequenceDetailPage: React.FC = () => {
         <section aria-live="polite" className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
           <h1 className="text-lg font-semibold text-slate-800">Could not load sequence frames</h1>
           <p className="mt-2 text-sm text-slate-500">{fetchError}</p>
-          <button className="mt-5 cursor-pointer text-sm font-medium text-cyan-700 hover:text-cyan-800" onClick={fetchFrames} type="button">Try again</button>
+          <button className="mt-5 cursor-pointer text-sm font-medium text-cyan-700 hover:text-cyan-800" onClick={handleRetryFetchFrames} type="button">Try again</button>
         </section>
       ) : sequence && selectedFrame ? (
         <>

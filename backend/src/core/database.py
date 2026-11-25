@@ -15,6 +15,9 @@ def init_db() -> None:
     if engine.dialect.name != "postgresql":
         return
 
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE fameresult DROP COLUMN IF EXISTS artifact"))
+
     primary_key = inspect(engine).get_pk_constraint("frame")
     constrained_columns = set(primary_key.get("constrained_columns") or [])
     if constrained_columns == {"id", "sequence_id"}:
@@ -26,4 +29,4 @@ def init_db() -> None:
         if constraint_name:
             quoted_constraint_name = preparer.quote(constraint_name)
             connection.execute(text(f"ALTER TABLE frame DROP CONSTRAINT {quoted_constraint_name}"))
-        connection.execute(text("ALTER TABLE frame ADD PRIMARY KEY (sequence_id, id)"))
+            connection.execute(text("ALTER TABLE frame ADD PRIMARY KEY (sequence_id, id)"))

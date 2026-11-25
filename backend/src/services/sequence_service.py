@@ -36,11 +36,13 @@ class SequenceService:
             )
             for frame in frames:
                 paths = frame.metadata_.get("path", {})
-                raw_path = paths.get("raw") if isinstance(paths, dict) else None
-                if raw_path:
-                    paths["raw"] = self.storage.access_url(
-                        raw_path, expires=self.preview_url_ttl
-                    )
+                if isinstance(paths, dict):
+                    for path_kind in ("raw", "segmented"):
+                        object_path = paths.get(path_kind)
+                        if object_path:
+                            paths[path_kind] = self.storage.access_url(
+                                object_path, expires=self.preview_url_ttl
+                            )
             return frames
 
 

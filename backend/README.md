@@ -71,9 +71,10 @@ the image; GPS is returned as associated metadata and is not fed into SegFormer.
 - `POST /api/segment/segment`: submit a sequence segment job with
   `model_id` and `sequence_id`.
 
-The job and segment submission routes are contract placeholders and return
-HTTP 501 until a worker service is implemented. Legacy synchronous inference
-routes have been removed.
+Segment submission creates a pending Redis job with the requested model and
+sequence IDs. The worker consumes it, records progress in Redis, and stores
+segmented frame artifacts and class coverage in PostgreSQL and MinIO. Legacy
+synchronous inference routes have been removed.
 
 Successful API responses use the shared envelope shape
 `{"success": true, "data": ..., "error": null}`. Response payloads use typed
@@ -87,8 +88,8 @@ list of frontend origins when the frontend is not on `http://localhost:5173`.
 `MAX_UPLOAD_BYTES` controls the upload limit (20 MiB by default).
 
 Storage sync uses its own Redis queue (`storage_sync:queue`) and worker thread,
-started automatically with the API. It remains separate from the segment job
-queue, so no additional worker command is needed.
+started automatically with the API. Segment jobs use the separate `job_queue`
+and are processed by the `worker` service in Docker Compose.
 Set `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` to match the Redis server;
 set `REDIS_USERNAME` as well when the server uses ACL authentication. The
 Compose Redis service uses the default ACL user and the `REDIS_PASSWORD` value
@@ -97,5 +98,6 @@ Frame GPS metadata includes latitude, longitude, altitude, and OXTS motion and
 receiver fields. The address field is left empty; storage sync does not perform
 reverse geocoding.
 
-The frame and model discovery routes are implemented. Job storage, submission,
-and cancellation will be connected when the worker service is added.
+The frame and model discovery routes are implemented. Job listing and
+cancellation use Redis job hashes; cancellation of an active sequence takes
+effect between frames.

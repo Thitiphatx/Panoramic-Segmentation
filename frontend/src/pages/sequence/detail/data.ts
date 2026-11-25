@@ -10,7 +10,5 @@ export const createFrameRecord = (frameIndex: number): IFrameRecord => {
     frameId: String(frameIndex).padStart(10, '0'),
     status,
     timestamp,
-    latitude: 48.8067 + frameIndex * 0.00001,
-    longitude: 9.2100 + frameIndex * 0.00002,
   }
 }

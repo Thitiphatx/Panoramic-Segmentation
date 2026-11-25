@@ -31,9 +31,6 @@ def get_minio_client() -> Minio:
         secure=os.environ.get("S3_USE_SSL", "false").lower() == "true",
     )
 
-def get_storage_service(client: Minio = Depends(get_minio_client)) -> StorageService:
-    return StorageService(client)
-
 @lru_cache
 def get_redis_client() -> Redis:
     return Redis(
@@ -45,14 +42,21 @@ def get_redis_client() -> Redis:
     )
 
 
+def get_storage_service(
+    client: Minio = Depends(get_minio_client),
+    redis_client: Redis = Depends(get_redis_client),
+) -> StorageService:
+    return StorageService(client, redis_client)
+
+
 def get_segment_service() -> SegmentService:
     return SegmentService(settings)
 
-def get_job_service() -> JobService:
-    return JobService()
-
 def get_redis_service(client: Redis = Depends(get_redis_client)) -> RedisService:
     return RedisService(client)
+
+def get_job_service(redis_service: RedisService = Depends(get_redis_service)) -> JobService:
+    return JobService(redis_service)
 
 def get_database_service(session: Session = Depends(get_session),
                          storage: StorageService = Depends(get_storage_service)

@@ -66,9 +66,10 @@ const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, fram
         <div className="relative aspect-[16/7] min-h-[230px] overflow-hidden bg-slate-800 sm:min-h-[300px]">
           <FrameArtwork
             frameNumber={frame.frameIndex}
-            imageUrl={isRawView ? frame.rawImageUrl : undefined}
+            imageUrl={frame.rawImageUrl}
             isUnsegmented={!isRawView && !isSegmentedPreviewAvailable}
             scene={sequence.scene ?? 'city'}
+            segmentedImageUrl={frame.segmentedImageUrl}
             viewMode={!isRawView && isSegmentedPreviewAvailable ? 'segmented' : 'raw'}
           />
           <span className="absolute left-4 top-4 rounded-md bg-slate-950/70 px-2.5 py-1.5 text-[10px] font-medium tracking-wide text-white">
@@ -93,16 +94,30 @@ const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, fram
 
         <div className="mt-5 grid grid-cols-2 gap-3 border-y border-slate-100 py-4">
           <MetadataItem label="Frame index" value={frame.frameIndex.toLocaleString()} />
-          <MetadataItem label="Capture time" value={frame.timestamp} />
-          <MetadataItem label="Latitude" value={frame.latitude.toFixed(6)} />
-          <MetadataItem label="Longitude" value={frame.longitude.toFixed(6)} />
+          <MetadataItem label="Capture date" value={frame.date ?? frame.timestamp} />
+          <MetadataItem label="Latitude" value={String(frame.gps?.lat ?? '—')} />
+          <MetadataItem label="Longitude" value={String(frame.gps?.lon ?? '—')} />
         </div>
 
         <div className="mt-4 space-y-3 text-xs text-slate-500">
-          <p className="flex items-center gap-2"><Clock3 className="size-3.5 text-slate-400" /> {sequence.date} · Local time</p>
-          <p className="flex items-center gap-2"><MapPin className="size-3.5 text-slate-400" /> Stuttgart, Germany</p>
+          <p className="flex items-center gap-2"><Clock3 className="size-3.5 shrink-0 text-slate-400" /> API status: {frame.apiStatus ?? frame.status}</p>
+          <p className="flex items-center gap-2"><MapPin className="size-3.5 shrink-0 text-slate-400" /> {frame.gps?.address || 'GPS coordinates from frame metadata'}</p>
           <p className="flex items-center gap-2"><Video className="size-3.5 text-slate-400" /> {sequence.camera}</p>
         </div>
+
+        <details className="mt-4 border-t border-slate-100 pt-3">
+          <summary className="cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900">All API metadata</summary>
+          <dl className="mt-3 space-y-2 text-[11px]">
+            {Object.entries(frame.gps ?? {}).map(([key, value]) => (
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2" key={key}>
+                <dt className="break-all text-slate-400">gps.{key}</dt>
+                <dd className="break-all text-right font-medium tabular-nums text-slate-700">{value ?? '—'}</dd>
+              </div>
+            ))}
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2"><dt className="text-slate-400">path.raw</dt><dd className="break-all text-right font-medium text-slate-700">{frame.rawImageUrl ?? '—'}</dd></div>
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2"><dt className="text-slate-400">path.segmented</dt><dd className="break-all text-right font-medium text-slate-700">{frame.segmentedImageUrl ?? '—'}</dd></div>
+          </dl>
+        </details>
       </aside>
     </section>
   )

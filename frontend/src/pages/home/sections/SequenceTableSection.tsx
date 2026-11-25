@@ -6,6 +6,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -20,13 +22,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ChevronDown, Filter, Search } from 'lucide-react'
+import { ChevronDown, Filter, MoreHorizontal, Search } from 'lucide-react'
 import type React from 'react'
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import type { ISequenceTableSectionProps, SequenceFilter } from '../interface'
+import type { ISequenceTableSectionProps, ISegmentModel, SequenceFilter } from '../interface'
 import SequenceStatusBadge from './SequenceStatusBadge'
 import { formatDuration } from '@/utils/formatter'
+import { apiClient } from '@/lib/api-client'
+import type { ApiResponse } from '@/types/response'
 
 const filters: SequenceFilter[] = ['All sequences', 'Available', 'Processing']
 
@@ -37,7 +41,14 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
   activeFilter,
   onSearchChange,
   onFilterChange,
+  onSegmentSubmitted,
 }) => {
+  const [models, setModels] = useState<ISegmentModel[]>([])
+  const [selectedModelBySequence, setSelectedModelBySequence] = useState<Record<string, string>>({})
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const [submittingSequenceId, setSubmittingSequenceId] = useState<string | null>(null)
+  const [segmentMessage, setSegmentMessage] = useState('')
+
   const filteredSequences = useMemo(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase()
 
@@ -49,6 +60,51 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
       return isSearchMatch && isFilterMatch
     })
   }, [activeFilter, searchTerm, sequences])
+
+  const fetchModels = useCallback(async () => {
+    try {
+      const { data } = await apiClient.get<ApiResponse<{ models: ISegmentModel[] }>>('/segment/models')
+      if (data.success) {
+        setModels(data.data.models)
+      } else {
+        setSegmentMessage(data.error || 'Could not load segmentation models')
+      }
+    } catch {
+      setSegmentMessage('Could not load segmentation models. Check the API connection and try again.')
+    } finally {
+      setIsLoadingModels(false)
+    }
+  }, [])
+
+  const handleSubmitSegment = useCallback(async (sequenceId: string, modelId: string) => {
+    if (!modelId || submittingSequenceId) {
+      return
+    }
+
+    setSubmittingSequenceId(sequenceId)
+    setSegmentMessage('')
+    try {
+      const { data } = await apiClient.post<ApiResponse<{ job_id: string }>>('/segment/segment', {
+        model_id: modelId,
+        sequence_id: sequenceId,
+      })
+      if (!data.success) {
+        setSegmentMessage(data.error || `Could not submit ${sequenceId} for segmentation`)
+        return
+      }
+      setSegmentMessage(`Segmentation job submitted for ${sequenceId}`)
+      onSegmentSubmitted(sequenceId)
+    } catch {
+      setSegmentMessage(`Could not submit ${sequenceId}. Check the API connection and try again.`)
+    } finally {
+      setSubmittingSequenceId(null)
+    }
+  }, [onSegmentSubmitted, submittingSequenceId])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => void fetchModels(), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [fetchModels])
 
   const totalSequenceCount = sequences.length
   return (
@@ -96,15 +152,20 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
           </DropdownMenu>
         </div>
       </CardHeader>
+      {segmentMessage && (
+        <p aria-live="polite" className="border-b border-slate-100 bg-slate-50 px-6 py-2.5 text-xs text-slate-600" role="status">
+          {segmentMessage}
+        </p>
+      )}
       <CardContent className="overflow-x-auto p-0">
-        <Table className="w-full min-w-[760px] border-collapse text-left">
+        <Table className="w-full min-w-[880px] border-collapse text-left">
           <TableHeader>
             <TableRow className="border-b border-slate-100 bg-slate-50/70 hover:bg-slate-50/70">
               <TableHead className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Sequence name</TableHead>
               <TableHead className="px-4 py-3.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Frames</TableHead>
               <TableHead className="px-4 py-3.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Duration</TableHead>
               <TableHead className="px-4 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Status</TableHead>
-              <TableHead className="px-5 py-3.5 text-right"><span className="sr-only">Actions</span></TableHead>
+              <TableHead className="px-5 py-3.5 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-slate-100">
@@ -137,6 +198,8 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
               </TableRow>
             ) : (
               filteredSequences.map((sequence) => {
+                const isReady = sequence.status === 'Ready'
+                const selectedModelId = selectedModelBySequence[sequence.id] || models[0]?.model_id || ''
                 return (
                   <TableRow className="transition hover:bg-slate-50/70" key={sequence.id}>
                     <TableCell className="px-6 py-3.5">
@@ -158,6 +221,46 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
                       {formatDuration(sequence.duration)}
                     </TableCell>
                     <TableCell className="px-4 py-3.5"><SequenceStatusBadge status={sequence.status} /></TableCell>
+                    <TableCell className="px-5 py-3.5 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-label={`Actions for ${sequence.id}`}
+                            className="size-8 cursor-pointer rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            disabled={isLoadingModels || models.length === 0 || submittingSequenceId === sequence.id}
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuLabel>Segmentation model</DropdownMenuLabel>
+                          <DropdownMenuRadioGroup
+                            onValueChange={(modelId) => setSelectedModelBySequence((currentModels) => ({
+                              ...currentModels,
+                              [sequence.id]: modelId,
+                            }))}
+                            value={selectedModelId}
+                          >
+                            {models.map((model) => (
+                              <DropdownMenuRadioItem className="cursor-pointer" key={model.model_id} value={model.model_id}>
+                                {model.name}
+                              </DropdownMenuRadioItem>
+                            ))}
+                          </DropdownMenuRadioGroup>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="cursor-pointer font-medium text-cyan-700 focus:text-cyan-800"
+                            disabled={!isReady || !selectedModelId || submittingSequenceId !== null}
+                            onSelect={() => void handleSubmitSegment(sequence.id, selectedModelId)}
+                            title={!isReady ? 'Only sequences with Ready status can be segmented' : undefined}
+                          >
+                            {submittingSequenceId === sequence.id ? 'Submitting…' : 'Segment'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 )
               })

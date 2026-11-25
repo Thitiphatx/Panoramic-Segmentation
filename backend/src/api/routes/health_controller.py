@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.dependencies import get_redis_service, get_segment_service
+from src.dependencies import get_segment_service, get_storage_service
 from src.schemas.core import ApiResponse
 from src.services.health_service import HealthService
-from src.services.redis_service import RedisService
 from src.services.segment_service import SegmentService
+from src.services.storage_service import StorageService
 
 router = APIRouter(prefix="/api", tags=["health"])
 
@@ -17,26 +17,26 @@ def health(
 
 @router.post("/sync-storage")
 def sync_storage(
-    redis_service: RedisService = Depends(get_redis_service),
+    storage: StorageService = Depends(get_storage_service),
 ) -> ApiResponse[dict[str, str | int]]:
-    sync_id, _ = redis_service.start_storage_sync()
-    status = redis_service.get_storage_sync(sync_id)
+    sync_id, _ = storage.start_storage_sync()
+    status = storage.get_storage_sync(sync_id)
     return ApiResponse(success=True, data=status)
 
 
 @router.get("/sync-storage")
 def active_storage_sync(
-    redis_service: RedisService = Depends(get_redis_service),
+    storage: StorageService = Depends(get_storage_service),
 ) -> ApiResponse[dict[str, str | int] | None]:
-    return ApiResponse(success=True, data=redis_service.get_active_storage_sync())
+    return ApiResponse(success=True, data=storage.get_active_storage_sync())
 
 
 @router.get("/sync-storage/{sync_id}")
 def storage_sync_status(
     sync_id: str,
-    redis_service: RedisService = Depends(get_redis_service),
+    storage: StorageService = Depends(get_storage_service),
 ) -> ApiResponse[dict[str, str | int]]:
-    status = redis_service.get_storage_sync(sync_id)
+    status = storage.get_storage_sync(sync_id)
     if not status:
         raise HTTPException(status_code=404, detail="Storage sync was not found")
     return ApiResponse(success=True, data=status)
@@ -45,9 +45,9 @@ def storage_sync_status(
 @router.post("/sync-storage/{sync_id}/cancel")
 def cancel_storage_sync(
     sync_id: str,
-    redis_service: RedisService = Depends(get_redis_service),
+    storage: StorageService = Depends(get_storage_service),
 ) -> ApiResponse[dict[str, str | int]]:
-    status = redis_service.cancel_storage_sync(sync_id)
+    status = storage.cancel_storage_sync(sync_id)
     if not status:
         raise HTTPException(status_code=404, detail="Storage sync was not found")
     return ApiResponse(success=True, data=status)

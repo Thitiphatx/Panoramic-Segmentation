@@ -13,10 +13,7 @@ export interface IFrameRecord {
 export interface IFrameApiMetadata {
   status?: string
   date?: string
-  gps?: {
-    lat?: number
-    lon?: number
-  }
+  gps?: Record<string, number | string | undefined>
   path?: {
     raw?: string
     segmented?: string

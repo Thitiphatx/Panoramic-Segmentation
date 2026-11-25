@@ -10,9 +10,11 @@ export interface IFrameRecord {
   frameId: string
   status: FrameSegmentationStatus
   timestamp: string
-  latitude: number
-  longitude: number
+  date?: string
+  apiStatus?: string
   rawImageUrl?: string
+  segmentedImageUrl?: string
+  gps?: Record<string, number | string | undefined>
 }
 
 export interface ISequenceMetadataSectionProps {
@@ -30,6 +32,7 @@ export interface IFrameArtworkProps {
   viewMode: FrameViewMode
   isUnsegmented?: boolean
   imageUrl?: string
+  segmentedImageUrl?: string
 }
 
 export interface IFrameViewerSectionProps {

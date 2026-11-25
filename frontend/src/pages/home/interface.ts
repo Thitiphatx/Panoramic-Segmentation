@@ -3,7 +3,7 @@ import type { ISequenceItem, SequenceScene, SequenceStatus } from '@/types/seque
 
 export type SequenceFilter = 'All sequences' | 'Available' | 'Processing'
 
-export type JobStatus = 'Running' | 'Queued' | 'Completed' | 'Cancelled'
+export type JobStatus = 'Running' | 'Queued' | 'Completed' | 'Cancelled' | 'Failed'
 export type StorageSyncStatus = 'queued' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed'
 
 export interface IStorageSyncStatus {
@@ -22,10 +22,26 @@ export interface IStorageSyncStatus {
 export interface IJob {
   id: string
   sequenceId: string
-  scene: SequenceScene
   status: JobStatus
   progress: number
   model: string
+  error?: string
+}
+
+export interface IJobRecord {
+  job_id: string
+  sequence_id: string
+  model_id: string
+  status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'failed'
+  progress?: string
+  completed?: string
+  total?: string
+  error?: string
+}
+
+export interface ISegmentModel {
+  model_id: string
+  name: string
 }
 
 export interface ISequenceThumbnailProps {
@@ -40,6 +56,11 @@ export interface ISequenceTableSectionProps {
   activeFilter: SequenceFilter
   onSearchChange: ChangeEventHandler<HTMLInputElement>
   onFilterChange: (filter: SequenceFilter) => void
+  onSegmentSubmitted: (sequenceId: string) => void
+}
+
+export interface IJobQueueSectionProps {
+  onJobFinished: (sequenceId: string) => void
 }
 
 export interface ISequenceOverviewSectionProps {

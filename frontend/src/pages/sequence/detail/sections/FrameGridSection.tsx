@@ -53,7 +53,7 @@ const FrameGridSection: React.FC<IFrameGridSectionProps> = ({
               type="button"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-slate-200">
-                <FrameArtwork frameNumber={frame.frameIndex} imageUrl={frame.rawImageUrl} isUnsegmented={isUnsegmented} scene={scene} viewMode="raw" />
+                <FrameArtwork frameNumber={frame.frameIndex} isUnsegmented={isUnsegmented} scene={scene} viewMode="raw" />
                 {isProcessing && <div className="absolute inset-0 bg-amber-300/55" />}
                 {isProcessing && <span className="absolute left-1.5 top-1.5 rounded bg-amber-400 px-1.5 py-1 text-[9px] font-semibold text-amber-950">Processing</span>}
               </div>

@@ -27,13 +27,11 @@ def get_frame(sequence_id: str, frame_id: str, camera: str = "image_00") -> ApiR
     )
 
 
-@router.post("/{frame_id}/segment", status_code=501)
+@router.post("/{frame_id}/segment", status_code=202)
 def submit_frame_segment(
     sequence_id: str,
     frame_id: str,
     service: JobService = Depends(get_job_service),
-) -> None:
-    try:
-        service.submit_frame(sequence_id, frame_id)
-    except JobServiceUnavailableError as exc:
-        raise HTTPException(status_code=501, detail=str(exc)) from exc
+) -> dict[str, str]:
+    job_id = service.submit_frame(sequence_id, frame_id)
+    return {"job_id": job_id}

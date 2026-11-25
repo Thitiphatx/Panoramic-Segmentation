@@ -144,6 +144,16 @@ const HomePage: React.FC = () => {
     setActiveFilter(filter)
   }, [])
 
+  const handleSegmentSubmitted = useCallback((sequenceId: string) => {
+    setSequences((currentSequences) => currentSequences.map((sequence) =>
+      sequence.id === sequenceId ? { ...sequence, status: 'Processing' } : sequence,
+    ))
+  }, [])
+
+  const handleJobFinished = useCallback(() => {
+    fetchSequences()
+  }, [fetchSequences])
+
   useEffect(() => {
     fetchSequences()
     fetchActiveStorageSync()
@@ -174,12 +184,13 @@ const HomePage: React.FC = () => {
       </div>
 
       <div className="space-y-5">
-        <JobQueueSection />
+        <JobQueueSection onJobFinished={handleJobFinished} />
         <SequenceTableSection
           activeFilter={activeFilter}
           isLoading={isLoading}
           onFilterChange={handleFilterChange}
           onSearchChange={handleSearchChange}
+          onSegmentSubmitted={handleSegmentSubmitted}
           searchTerm={searchTerm}
           sequences={filteredSequences}
         />
