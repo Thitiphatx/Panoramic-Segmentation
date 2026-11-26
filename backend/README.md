@@ -18,16 +18,18 @@ backend/
     │   └── routes/
     │       ├── health.py            # Health/readiness endpoints
     │       ├── sequences.py         # Browse available KITTI-360 sequences/frames
-    │       └── segmentation.py     # Upload image or request a dataset-frame prediction
+    │       ├── frame.py            # Frame metadata and frame job submission
+    │       ├── jobs.py              # Job listing and cancellation
+    │       └── segment.py           # Model listing and sequence job submission
     ├── core/
     │   ├── config.py                # Dataset/model paths and environment settings
     │   └── errors.py                # Shared API errors
     ├── schemas/
     │   ├── frame.py                 # Frame, GPS, and pose response models
-    │   └── segmentation.py         # Prediction, mask, class coverage, latency
+    │   └── segment.py              # Segment request/model/result schemas
     ├── services/
     │   ├── kitti360.py              # Resolve image and synchronized OXTS files
-    │   └── segmentation.py         # Combine frame/image, location, and inference
+    │   └── segment.py              # Inference service
     ├── inference/
     │   ├── segformer.py             # Load B0 once and run predictions
     │   ├── preprocessing.py         # Convert input images to model tensors
@@ -56,34 +58,46 @@ the image; GPS is returned as associated metadata and is not fed into SegFormer.
 ## API shape
 
 - `GET /health`: service status.
-- `GET /api/sequences`: available sequence names.
-- `GET /api/sequences/{sequence}/frames`: ordered frame IDs with image/GPS availability.
-- `GET /api/sequences/{sequence}/frames/{frame_id}/segmentation`: segment a
-  stored frame and return its location with the prediction.
-- `POST /api/segmentation`: segment an uploaded raw image and accept GPS fields
-  as metadata.
+- `GET /api/sequence`: available sequence names.
+- `GET /api/sequence/{sequence_id}`: ordered frames for a sequence.
+- `GET /api/sequence/{sequence_id}/frame/{frame_id}`: frame metadata and GPS.
+- `POST /api/sync-storage`: start a storage sync and return its `sync_id` immediately.
+- `GET /api/sync-storage/{sync_id}`: read sync progress; `GET /api/sync-storage`
+  returns the currently active sync, if any.
+- `POST /api/sync-storage/{sync_id}/cancel`: cancel a queued or running sync.
+- `POST /api/sequence/{sequence_id}/frame/{frame_id}/segment`: submit a frame job.
+- `GET /api/job`: list jobs; `DELETE /api/job/{job_id}`: cancel a job.
+- `GET /api/segment/models`: available models (`SegmentModelList`).
+- `POST /api/segment/segment`: submit a sequence segment job with
+  `model_id` and `sequence_id`.
 
-### Frame playback flow
+Segment submission creates a pending Redis job with the requested model and
+sequence IDs. The worker consumes it, records progress in Redis, and stores
+segmented frame artifacts and class coverage in PostgreSQL and MinIO. Legacy
+synchronous inference routes have been removed.
 
-The backend processes stored frames individually. The frontend first lists
-sequences, loads the selected sequence's ordered frame list, and requests each
-frame's segmentation as playback reaches it. It can cache completed responses
-and use them to play frames in a loop. Pausing playback leaves the current
-frame selected so the user can inspect its image, segmentation, and metadata.
+Successful API responses use the shared envelope shape
+`{"success": true, "data": ..., "error": null}`. Response payloads use typed
+Pydantic schemas, including `SegmentModelList`, `FrameDetail`, and `JobList`.
 
-Each segmentation response should include the frame ID, GPS coordinates when
-available, a colorized mask (or mask URL), per-class pixel coverage, and
-inference time. The model should load once when the API starts, rather than
-once per request. The backend does not need to assemble a video for this flow.
+## Run the API
 
-If requesting frames individually is too slow, a batch endpoint can be added
-later to process a frame range ahead of playback while still returning a
-separate result for each frame. Batch processing is an optimization; the
-frame-by-frame endpoint remains the basis for inspecting and pausing on
-individual results.
+From this directory, run `uv sync` and then `uv run uvicorn src.main:app --reload`.
+The API docs are available at `/docs`. Set `CORS_ORIGINS` to a comma-separated
+list of frontend origins when the frontend is not on `http://localhost:5173`.
+`MAX_UPLOAD_BYTES` controls the upload limit (20 MiB by default).
 
-## Current status
+Storage sync uses its own Redis queue (`storage_sync:queue`) and worker thread,
+started automatically with the API. Segment jobs use the separate `job_queue`
+and are processed by the `worker` service in Docker Compose.
+Set `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` to match the Redis server;
+set `REDIS_USERNAME` as well when the server uses ACL authentication. The
+Compose Redis service uses the default ACL user and the `REDIS_PASSWORD` value
+from the Compose environment (or `redis-dev-password` when unset).
+Frame GPS metadata includes latitude, longitude, altitude, and OXTS motion and
+receiver fields. The address field is left empty; storage sync does not perform
+reverse geocoding.
 
-This file documents the intended structure. The backend package is still a
-minimal stub; the route and inference modules above have not been implemented
-yet.
+The frame and model discovery routes are implemented. Job listing and
+cancellation use Redis job hashes; cancellation of an active sequence takes
+effect between frames.

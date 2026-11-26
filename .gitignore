@@ -47,3 +47,5 @@ training/models/*
 .env.*
 !.env.example
 
+
+worker/src/models
