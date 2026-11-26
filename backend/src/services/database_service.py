@@ -71,7 +71,7 @@ class DatabaseService:
                 image_ids = sequence_images[seq_id]
                 sequence_metadata = {
                     "preview": (
-                        f"{storage.bucket}/{storage.image_path(seq_id, image_ids[0])}"
+                        storage.image_path(seq_id, image_ids[0])
                         if image_ids
                         else ""
                     ),
@@ -102,7 +102,7 @@ class DatabaseService:
                         "date": timestamps[frame_index] if frame_index < len(timestamps) else "",
                         "gps": gps_metadata,
                         "path": {
-                            "raw": f"{storage.bucket}/{storage.image_path(seq_id, frame_id)}",
+                            "raw": storage.image_path(seq_id, frame_id),
                             "segmented": "",
                         },
                     }

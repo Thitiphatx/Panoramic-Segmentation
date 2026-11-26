@@ -198,7 +198,7 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
               </TableRow>
             ) : (
               filteredSequences.map((sequence) => {
-                const isReady = sequence.status === 'Ready'
+                const canSegment = sequence.status === 'Ready' || sequence.status === 'Segmented'
                 const selectedModelId = selectedModelBySequence[sequence.id] || models[0]?.model_id || ''
                 return (
                   <TableRow className="transition hover:bg-slate-50/70" key={sequence.id}>
@@ -252,9 +252,9 @@ const SequenceTableSection: React.FC<ISequenceTableSectionProps> = ({
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="cursor-pointer font-medium text-cyan-700 focus:text-cyan-800"
-                            disabled={!isReady || !selectedModelId || submittingSequenceId !== null}
+                            disabled={!canSegment || !selectedModelId || submittingSequenceId !== null}
                             onSelect={() => void handleSubmitSegment(sequence.id, selectedModelId)}
-                            title={!isReady ? 'Only sequences with Ready status can be segmented' : undefined}
+                            title={!canSegment ? 'Only Ready or Segmented sequences can be segmented' : undefined}
                           >
                             {submittingSequenceId === sequence.id ? 'Submitting…' : 'Segment'}
                           </DropdownMenuItem>

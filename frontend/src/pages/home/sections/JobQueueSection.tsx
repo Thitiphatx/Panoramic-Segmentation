@@ -57,7 +57,7 @@ const JobQueueSection: React.FC<IJobQueueSectionProps> = ({ onJobFinished }) => 
         data.data.jobs.forEach((job) => {
           if ((job.status === 'completed' || job.status === 'failed') && !handledTerminalJobs.current.has(job.job_id)) {
             handledTerminalJobs.current.add(job.job_id)
-            onJobFinished(job.sequence_id)
+            onJobFinished(job.sequence_id, job.status === 'completed')
           }
         })
         setJobs(fetchedJobs.filter((job) => job.status !== 'Completed' && job.status !== 'Cancelled'))

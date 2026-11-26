@@ -55,6 +55,11 @@ The dataset service pairs each rectified image at
 and altitude from the synchronized OXTS record. The inference engine receives
 the image; GPS is returned as associated metadata and is not fed into SegFormer.
 
+Sequence previews and frame image paths are stored as bucket-relative object
+keys. The frontend resolves them through `VITE_RESOURCE_BASE_URL`, and the
+backend streams objects from Silo through `GET /resource/{object_path}` so the
+browser does not need a Silo address or credentials.
+
 ## API shape
 
 - `GET /health`: service status.

@@ -78,11 +78,12 @@ def process_job(
                     })
                     return
                 raw_path = frame.metadata_.get("path", {}).get("raw", "")
-                bucket, separator, object_name = raw_path.partition("/")
-                if not separator or not object_name:
+                legacy_prefix = f"{settings.s3_bucket}/"
+                object_name = raw_path.removeprefix(legacy_prefix)
+                if not object_name.startswith("raw/data_images/"):
                     raise ValueError(f"Frame {frame.id} has no valid raw object path")
 
-                response = storage.get_object(bucket, object_name)
+                response = storage.get_object(settings.s3_bucket, object_name)
                 try:
                     image = Image.open(BytesIO(response.read())).convert("RGB")
                 finally:
@@ -119,8 +120,14 @@ def process_job(
                 else:
                     frame_result.most_found_class = most_found["class_name"]
                     frame_result.classes = percentages
-                frame.metadata_.setdefault("path", {})["segmented"] = f"{settings.s3_bucket}/{result_key}"
-                frame.metadata_["status"] = "Segmented"
+                frame_metadata = {**frame.metadata_}
+                path_metadata = frame_metadata.get("path")
+                frame_metadata["path"] = {
+                    **(path_metadata if isinstance(path_metadata, dict) else {}),
+                    "segmented": result_key,
+                }
+                frame_metadata["status"] = "Segmented"
+                frame.metadata_ = frame_metadata
                 session.add(frame)
                 session.commit()
                 redis.hset(f"job:{job_id}", mapping={

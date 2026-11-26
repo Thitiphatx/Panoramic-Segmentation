@@ -5,12 +5,13 @@ import { Link, useParams } from 'react-router'
 import FrameGridSection from './sections/FrameGridSection'
 import FrameViewerSection from './sections/FrameViewerSection'
 import SequenceMetadataSection from './sections/SequenceMetadataSection'
-import { sequences } from '@/data/sequences'
-import type { FrameViewMode, IFrameRecord } from './interface'
+import type { IFrameRecord } from './interface'
 import { apiClient } from '@/lib/api-client'
 import type { ApiResponse } from '@/types/response'
 import type { ISequenceFrameRecord } from '@/types/frame'
 import type { ISequenceRecord, SequenceStatus } from '@/types/sequence'
+import { getResourceUrl } from '@/lib/resource-url'
+import { formatDuration } from '@/utils/formatter'
 
 const FRAME_PAGE_SIZE = 48
 const PLAYBACK_INTERVAL_MS = 100
@@ -18,34 +19,30 @@ const PLAYBACK_INTERVAL_MS = 100
 const SequenceDetailPage: React.FC = () => {
   const { sequenceId = '' } = useParams()
   const [selectedFrameIndex, setSelectedFrameIndex] = useState(0)
-  const [frameViewMode, setFrameViewMode] = useState<FrameViewMode>('raw')
   const [isPlaying, setIsPlaying] = useState(false)
   const [framePage, setFramePage] = useState(1)
   const [frames, setFrames] = useState<IFrameRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [sequenceStatus, setSequenceStatus] = useState<SequenceStatus>('Ready')
+  const [sequenceRecord, setSequenceRecord] = useState<ISequenceRecord | null>(null)
 
   const sequence = useMemo(() => {
-    const knownSequence = sequences.find((sequenceItem) => sequenceItem.id === sequenceId)
-    if (knownSequence) {
-      return { ...knownSequence, frames: frames.length, status: sequenceStatus }
-    }
-    if (frames.length === 0) {
+    if (!sequenceRecord) {
       return undefined
     }
     return {
-      id: sequenceId,
-      date: '—',
-      frames: frames.length,
-      duration: '—',
+      id: sequenceRecord.id,
+      date: sequenceRecord.metadata_.date || '—',
+      frames: sequenceRecord.metadata_.frame ?? frames.length,
+      duration: formatDuration(sequenceRecord.metadata_.duration ?? 0),
       storage: '—',
       status: sequenceStatus,
-      camera: 'Image 00 · Stereo pair',
+      camera: '—',
       weather: '—',
       scene: 'city' as const,
     }
-  }, [frames.length, sequenceId, sequenceStatus])
+  }, [frames.length, sequenceRecord, sequenceStatus])
 
   const fetchFrames = useCallback(() => {
     setFetchError(null)
@@ -63,8 +60,8 @@ const SequenceDetailPage: React.FC = () => {
             date: frame.metadata_.date,
             timestamp: frame.metadata_.date ?? '—',
             gps: frame.metadata_.gps,
-            rawImageUrl: frame.metadata_.path?.raw,
-            segmentedImageUrl: frame.metadata_.path?.segmented || undefined,
+            rawImageUrl: getResourceUrl(frame.metadata_.path?.raw),
+            segmentedImageUrl: frame.metadata_.path?.segmented ? getResourceUrl(frame.metadata_.path.segmented) : undefined,
             }))
           setFrames(sequenceFrames)
           setSelectedFrameIndex(0)
@@ -77,11 +74,14 @@ const SequenceDetailPage: React.FC = () => {
       .finally(() => setIsLoading(false))
   }, [sequenceId])
 
-  const fetchSequenceStatus = useCallback(async () => {
+  const fetchSequenceMetadata = useCallback(async () => {
     try {
       const { data } = await apiClient.get<ApiResponse<ISequenceRecord[]>>('/sequence')
       if (data.success) {
         const currentSequence = data.data.find((item) => item.id === sequenceId)
+        if (currentSequence) {
+          setSequenceRecord(currentSequence)
+        }
         if (currentSequence?.metadata_.status) {
           setSequenceStatus(currentSequence.metadata_.status)
         }
@@ -96,8 +96,8 @@ const SequenceDetailPage: React.FC = () => {
   }, [fetchFrames])
 
   useEffect(() => {
-    void Promise.resolve().then(fetchSequenceStatus)
-  }, [fetchSequenceStatus])
+    void Promise.resolve().then(fetchSequenceMetadata)
+  }, [fetchSequenceMetadata])
 
   useEffect(() => {
     if (sequenceStatus !== 'Processing') {
@@ -105,10 +105,10 @@ const SequenceDetailPage: React.FC = () => {
     }
     const intervalId = window.setInterval(() => {
       fetchFrames()
-      void fetchSequenceStatus()
+      void fetchSequenceMetadata()
     }, 5000)
     return () => window.clearInterval(intervalId)
-  }, [fetchFrames, fetchSequenceStatus, sequenceStatus])
+  }, [fetchFrames, fetchSequenceMetadata, sequenceStatus])
 
   const handleRetryFetchFrames = useCallback(() => {
     setIsLoading(true)
@@ -129,10 +129,6 @@ const SequenceDetailPage: React.FC = () => {
     () => Math.max(1, Math.ceil(frames.length / FRAME_PAGE_SIZE)),
     [frames.length],
   )
-
-  const handleFrameViewModeChange = useCallback((event: MouseEvent<HTMLButtonElement>) => {
-    setFrameViewMode(event.currentTarget.value as FrameViewMode)
-  }, [])
 
   const advanceFrame = useCallback(() => {
     const nextFrameIndex = (selectedFrameIndex + 1) % frames.length
@@ -190,9 +186,7 @@ const SequenceDetailPage: React.FC = () => {
             frame={selectedFrame}
             isPlaying={isPlaying}
             onTogglePlayback={handleTogglePlayback}
-            onViewModeChange={handleFrameViewModeChange}
             sequence={sequence}
-            viewMode={frameViewMode}
           />
           <FrameGridSection
             currentPage={framePage}

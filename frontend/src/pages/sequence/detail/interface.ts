@@ -1,8 +1,6 @@
 import type { MouseEventHandler } from 'react'
 import type { ISequence, SequenceScene } from '@/types/sequence'
 
-export type FrameViewMode = 'raw' | 'segmented'
-
 export type FrameSegmentationStatus = 'unsegmented' | 'segmented' | 'processing'
 
 export interface IFrameRecord {
@@ -29,18 +27,15 @@ export interface IMetadataFieldProps {
 export interface IFrameArtworkProps {
   scene: SequenceScene
   frameNumber: number
-  viewMode: FrameViewMode
-  isUnsegmented?: boolean
   imageUrl?: string
   segmentedImageUrl?: string
+  segmentationOpacity: number
 }
 
 export interface IFrameViewerSectionProps {
   sequence: ISequence
   frame: IFrameRecord
-  viewMode: FrameViewMode
   isPlaying: boolean
-  onViewModeChange: MouseEventHandler<HTMLButtonElement>
   onTogglePlayback: () => void
 }
 

@@ -1,14 +1,18 @@
 import type React from 'react'
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Clock3, MapPin, Pause, Play, Video } from 'lucide-react'
 import FrameArtwork from './FrameArtwork'
 import type { IFrameViewerSectionProps } from '../interface'
 import FrameSegmentationBadge from './FrameSegmentationBadge'
 import MetadataItem from './MetadataItem'
 
-const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, frame, viewMode, isPlaying, onViewModeChange, onTogglePlayback }) => {
-  const isRawView = viewMode === 'raw'
-  const isSegmentedPreviewAvailable = frame.status === 'segmented'
+const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, frame, isPlaying, onTogglePlayback }) => {
+  const [segmentationOpacity, setSegmentationOpacity] = useState(50)
+  const isSegmentedPreviewAvailable = Boolean(frame.segmentedImageUrl)
+
+  const handleOpacityChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setSegmentationOpacity(Number(event.currentTarget.value))
+  }, [])
 
   const segmentationLabel = useMemo(() => {
     if (frame.status === 'segmented') {
@@ -30,36 +34,30 @@ const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, fram
             <h2 className="text-sm font-semibold text-slate-800">Full frame view</h2>
             <p className="mt-1 text-[11px] text-slate-400">Frame {frame.frameId} <span className="mx-1">·</span> {sequence.id}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-          <button
-            aria-label={isPlaying ? 'Pause playback' : 'Play sequence'}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-            onClick={onTogglePlayback}
-            type="button"
-          >
-            {isPlaying ? <Pause aria-hidden="true" className="size-3.5" /> : <Play aria-hidden="true" className="size-3.5" />}
-            {isPlaying ? 'Pause' : 'Play'}
-          </button>
-          <div aria-label="Frame display mode" className="flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <div className="flex flex-wrap items-center gap-4">
             <button
-              aria-pressed={isRawView}
-              className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition ${isRawView ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-              onClick={onViewModeChange}
+              aria-label={isPlaying ? 'Pause playback' : 'Play sequence'}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              onClick={onTogglePlayback}
               type="button"
-              value="raw"
             >
-              Raw
+              {isPlaying ? <Pause aria-hidden="true" className="size-3.5" /> : <Play aria-hidden="true" className="size-3.5" />}
+              {isPlaying ? 'Pause' : 'Play'}
             </button>
-            <button
-              aria-pressed={!isRawView}
-              className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition ${!isRawView ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-              onClick={onViewModeChange}
-              type="button"
-              value="segmented"
-            >
-              Segmented
-            </button>
-          </div>
+            <label className="flex min-w-48 items-center gap-3 text-xs text-slate-500">
+              <span className="whitespace-nowrap">Result opacity</span>
+              <input
+                aria-label="Segmentation result opacity"
+                className="h-1.5 w-28 cursor-pointer accent-cyan-700 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!isSegmentedPreviewAvailable}
+                max="100"
+                min="0"
+                onChange={handleOpacityChange}
+                type="range"
+                value={segmentationOpacity}
+              />
+              <span className="w-8 text-right tabular-nums">{segmentationOpacity}%</span>
+            </label>
           </div>
         </div>
 
@@ -67,18 +65,19 @@ const FrameViewerSection: React.FC<IFrameViewerSectionProps> = ({ sequence, fram
           <FrameArtwork
             frameNumber={frame.frameIndex}
             imageUrl={frame.rawImageUrl}
-            isUnsegmented={!isRawView && !isSegmentedPreviewAvailable}
             scene={sequence.scene ?? 'city'}
             segmentedImageUrl={frame.segmentedImageUrl}
-            viewMode={!isRawView && isSegmentedPreviewAvailable ? 'segmented' : 'raw'}
+            segmentationOpacity={segmentationOpacity}
           />
           <span className="absolute left-4 top-4 rounded-md bg-slate-950/70 px-2.5 py-1.5 text-[10px] font-medium tracking-wide text-white">
-            {isRawView ? 'RAW CAMERA' : isSegmentedPreviewAvailable ? 'SEMANTIC MASK' : 'SEGMENTATION PENDING'}
+            {isSegmentedPreviewAvailable ? 'RAW + SEGMENTATION' : 'RAW CAMERA'}
           </span>
-          {!isRawView && !isSegmentedPreviewAvailable && (
-            <span className="absolute bottom-4 left-4 rounded-md bg-amber-300/95 px-2.5 py-1.5 text-[10px] font-semibold text-amber-950">
-              {frame.status === 'processing' ? 'Segmentation is processing' : 'No segmentation for this frame'}
-            </span>
+          {!isSegmentedPreviewAvailable && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/35 p-6 text-center">
+              <p className="max-w-sm rounded-lg bg-slate-950/75 px-4 py-3 text-sm font-medium text-white" role="status">
+                {frame.status === 'processing' ? 'Segmentation is processing for this frame.' : 'No segmentation result is available for this frame yet.'}
+              </p>
+            </div>
           )}
         </div>
       </div>

@@ -39,7 +39,6 @@ const FrameGridSection: React.FC<IFrameGridSectionProps> = ({
       <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
         {frames.map((frame) => {
           const isSelected = frame.frameIndex === selectedFrameIndex
-          const isUnsegmented = frame.status === 'unsegmented'
           const isProcessing = frame.status === 'processing'
 
           return (
@@ -53,13 +52,18 @@ const FrameGridSection: React.FC<IFrameGridSectionProps> = ({
               type="button"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-slate-200">
-                <FrameArtwork frameNumber={frame.frameIndex} isUnsegmented={isUnsegmented} scene={scene} viewMode="raw" />
+                <FrameArtwork
+                  frameNumber={frame.frameIndex}
+                  imageUrl={frame.rawImageUrl}
+                  scene={scene}
+                  segmentationOpacity={0}
+                />
                 {isProcessing && <div className="absolute inset-0 bg-amber-300/55" />}
                 {isProcessing && <span className="absolute left-1.5 top-1.5 rounded bg-amber-400 px-1.5 py-1 text-[9px] font-semibold text-amber-950">Processing</span>}
               </div>
               <div className="flex items-center justify-between gap-1 px-2 py-2">
                 <span className={`truncate text-[10px] font-medium ${isSelected ? 'text-blue-700' : 'text-slate-600'}`}>{frame.frameId}</span>
-                <span aria-label={frame.status} className={`size-1.5 shrink-0 rounded-full ${isUnsegmented ? 'bg-slate-300' : isProcessing ? 'bg-amber-400' : 'bg-emerald-500'}`} />
+                <span aria-label={frame.status} className={`size-1.5 shrink-0 rounded-full ${frame.status === 'unsegmented' ? 'bg-slate-300' : isProcessing ? 'bg-amber-400' : 'bg-emerald-500'}`} />
               </div>
             </button>
           )

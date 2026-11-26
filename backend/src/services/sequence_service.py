@@ -1,5 +1,3 @@
-import io
-from datetime import timedelta
 from sqlmodel import Session, select
 from src.model.frame import Frame
 from src.model.sequence import Sequence
@@ -10,8 +8,6 @@ MISSING_OBJECT_CODES = {"NoSuchKey", "NoSuchObject", "NotFound"}
 
 class SequenceService:
     data_images_path = "raw/data_images"
-    preview_url_ttl = timedelta(hours=1)
-
     def __init__(self, session: Session, storage: StorageService) -> None:
         self.session = session
         self.storage = storage
@@ -22,9 +18,7 @@ class SequenceService:
             for sequence in sequences:
                 preview = sequence.metadata_.get("preview")
                 if preview:
-                    sequence.metadata_["preview"] = self.storage.access_url(
-                        preview, expires=self.preview_url_ttl
-                    )
+                    sequence.metadata_["preview"] = self.storage.relative_object_path(preview)
             return sequences
 
     def get_frames(self, sequence_id: str) -> list[Frame]:
@@ -40,9 +34,7 @@ class SequenceService:
                     for path_kind in ("raw", "segmented"):
                         object_path = paths.get(path_kind)
                         if object_path:
-                            paths[path_kind] = self.storage.access_url(
-                                object_path, expires=self.preview_url_ttl
-                            )
+                            paths[path_kind] = self.storage.relative_object_path(object_path)
             return frames
 
 

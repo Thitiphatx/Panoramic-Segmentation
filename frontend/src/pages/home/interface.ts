@@ -60,7 +60,7 @@ export interface ISequenceTableSectionProps {
 }
 
 export interface IJobQueueSectionProps {
-  onJobFinished: (sequenceId: string) => void
+  onJobFinished: (sequenceId: string, completed: boolean) => void
 }
 
 export interface ISequenceOverviewSectionProps {

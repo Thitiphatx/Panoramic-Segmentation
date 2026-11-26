@@ -7,6 +7,7 @@ import type { IStorageSyncStatus, SequenceFilter } from './interface'
 import type { ISequenceItem, ISequenceRecord } from '@/types/sequence'
 import { apiClient } from '@/lib/api-client'
 import type { ApiResponse } from '@/types/response'
+import { getResourceUrl } from '@/lib/resource-url'
 
 const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -39,6 +40,7 @@ const HomePage: React.FC = () => {
           const sequenceItems = data.data.map(({ id, metadata_ }) => ({
             id,
             ...metadata_,
+            preview: getResourceUrl(metadata_.preview),
           }))
           setSequences(sequenceItems)
         }

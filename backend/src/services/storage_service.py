@@ -1,4 +1,3 @@
-from datetime import timedelta
 from pathlib import PurePosixPath
 import uuid
 
@@ -29,12 +28,25 @@ class StorageService:
     def image_path(self, sequence_id: str, image_id: str) -> str:
         return f"{self.sequence_path(sequence_id)}/data_rect/{image_id}.png"
 
-    def access_url(self, path: str, expires: timedelta = timedelta(hours=1)) -> str:
-        """Create a temporary URL for a stored object, given `bucket/object-key`."""
-        bucket, separator, object_name = path.partition("/")
-        if not separator or not object_name:
+    def relative_object_path(self, path: str) -> str:
+        """Return a bucket-relative object path, accepting legacy bucket prefixes."""
+        prefix = f"{self.bucket}/"
+        return path.removeprefix(prefix)
+
+    def get_resource(self, path: str):
+        object_path = self.relative_object_path(path)
+        parts = PurePosixPath(object_path).parts
+        if (
+            not object_path
+            or "\\" in object_path
+            or any(part in {"", ".", ".."} for part in parts)
+            or not (
+                object_path.startswith(f"{self.images_root}/")
+                or object_path.startswith("segmented/")
+            )
+        ):
             raise ValueError(f"Invalid storage path: {path!r}")
-        return self.get_client().presigned_get_object(bucket, object_name, expires=expires)
+        return self.get_client().get_object(self.bucket, object_path)
 
     def list_sequence_ids(self) -> list[str]:
         """List sequence folders under raw/data_images/."""
